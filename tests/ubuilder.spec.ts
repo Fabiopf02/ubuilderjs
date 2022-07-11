@@ -1,6 +1,6 @@
 import { UBuilder } from '../src/index'
 
-const data = [
+const data: { [key: string]: any }[] = [
   {
     id: 1,
     name: 'Test 1',
@@ -23,6 +23,14 @@ describe('UBuilder', () => {
   test('Deve retornar apenas um registro', () => {
     const expected = [data[0]]
     const received = new UBuilder(data).limit(1).build()
+
+    expect(received).toStrictEqual(expected)
+  })
+  test('Deve selecionar apenas uma propriedade do objeto', () => {
+    const first = data[0]
+    delete first['id']
+    const expected = [first]
+    const received = new UBuilder(data).limit(1).select(['name']).build()
 
     expect(received).toStrictEqual(expected)
   })
