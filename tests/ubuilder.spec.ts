@@ -44,4 +44,9 @@ describe('UBuilder', () => {
 
     expect(received).toStrictEqual(expected)
   })
+  test('Deve ordenar os valores com orderBy', () => {
+    const expected = data.reverse()
+    const received = new UBuilder(data).orderBy('id').desc().build()
+    expect(received).toStrictEqual(expected)
+  })
 })

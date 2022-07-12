@@ -7,6 +7,8 @@ export class UBuilder {
     AND: {},
     OR: {},
   }
+  private _orderBy: string = ''
+  private _orderType: 'asc' | 'desc' = 'asc'
 
   constructor(database: any[]) {
     if (!database) throw new Error('Database parameter is required!')
@@ -41,6 +43,21 @@ export class UBuilder {
         Object.assign(this._where[type]!, obj)
       }
     }
+    return this
+  }
+
+  orderBy(_value: string) {
+    this._orderBy = _value
+    return this
+  }
+
+  asc() {
+    this._orderType = 'asc'
+    return this
+  }
+
+  desc() {
+    this._orderType = 'desc'
     return this
   }
 
@@ -86,6 +103,17 @@ export class UBuilder {
     return matched ? item : null
   }
 
+  private order(results: any[]) {
+    if (!this._orderBy.length) return results
+    return results.sort((a, b) => {
+      const valueA = a[this._orderBy]
+      const valueB = b[this._orderBy]
+
+      if (this._orderType === 'asc') return valueA - valueB
+      return valueB - valueA
+    })
+  }
+
   build() {
     const results = []
 
@@ -98,6 +126,6 @@ export class UBuilder {
       if (this.isInLimit(results)) break
     }
 
-    return results
+    return this.order(results)
   }
 }
