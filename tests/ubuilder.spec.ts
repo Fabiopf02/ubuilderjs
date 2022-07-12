@@ -34,4 +34,14 @@ describe('UBuilder', () => {
 
     expect(received).toStrictEqual(expected)
   })
+  test('Deve filtrar os valores com where', () => {
+    const first = data[1]
+    const expected = [first]
+    const received = new UBuilder(data)
+      .limit(1)
+      .where({ OR: { id: 2 } })
+      .build()
+
+    expect(received).toStrictEqual(expected)
+  })
 })
