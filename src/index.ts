@@ -66,7 +66,8 @@ export class UBuilder {
 
   paginate(perPage: number = 10) {
     this._perPage = perPage
-    return this
+    const response = this.build()
+    return this._pagination(response)
   }
 
   private isInLimit(results: any[]) {
@@ -126,55 +127,61 @@ export class UBuilder {
     const total = data.length
     const perPage = this._perPage
     const pages = Math.ceil(total / perPage)
-    let currentOffset = 1
-
     const paginatedData = new Array(pages)
-
     for (let page = 0; page < pages; page++) {
       const from = page === 0 ? 0 : page * perPage
       const to = (page + 1) * perPage
       const pageData = data.slice(from, to)
       paginatedData[page] = pageData
     }
+    const props = {
+      total,
+      per_page: perPage,
+      pages,
+      page: 1,
+      data: paginatedData[0],
+      next: () => props.data,
+      prev: () => props.data,
+      offset: (index: number) => props.data,
+      first: () => props.data,
+      last: () => props.data,
+    }
 
     const next = () => {
-      if (currentOffset + 1 > pages) return null
-      currentOffset++
-      return paginatedData[currentOffset - 1]
+      if (props.page + 1 > pages) return null
+      props.page++
+      props.data = paginatedData[props.page - 1]
+      return props.data
     }
     const prev = () => {
-      if (currentOffset - 1 < 1) return null
-      currentOffset--
-      return paginatedData[currentOffset - 1]
+      if (props.page - 1 < 1) return null
+      props.page--
+      props.data = paginatedData[props.page - 1]
+      return props.data
     }
 
     const offset = (index: number) => {
       if (index < 1 || index > pages) return null
-      currentOffset = index
-      return paginatedData[currentOffset - 1]
+      props.page = index
+      props.data = paginatedData[props.page - 1]
+      return props.data
     }
 
     const first = () => {
-      currentOffset = 1
-      return paginatedData[currentOffset - 1]
+      props.page = 1
+      props.data = paginatedData[props.page - 1]
+      return props.data
     }
 
     const last = () => {
-      currentOffset = pages
-      return paginatedData[currentOffset - 1]
+      props.page = pages
+      props.data = paginatedData[props.page - 1]
+      return props.data
     }
 
-    return {
-      total,
-      pages,
-      page: currentOffset,
-      data: paginatedData[currentOffset - 1],
-      offset,
-      prev,
-      next,
-      first,
-      last,
-    }
+    Object.assign(props, { offset, prev, next, first, last })
+
+    return props
   }
 
   build() {
@@ -190,8 +197,6 @@ export class UBuilder {
     }
 
     const orderedResults = this.order(results)
-
-    if (this._perPage > 0) return this._pagination(orderedResults)
 
     return orderedResults
   }

@@ -50,18 +50,15 @@ describe('UBuilder', () => {
     expect(received).toStrictEqual(expected)
   })
   test('Deve paginar os dados', () => {
-    const paginationResponse = new UBuilder(data).paginate(3).build()
-    // @ts-ignore
+    const paginationResponse = new UBuilder(data).paginate(3)
     expect(paginationResponse.pages).toBe(2)
-    // @ts-ignore
     expect(paginationResponse.total).toBe(4)
-    // @ts-ignore
     expect(paginationResponse.page).toBe(1)
-    // @ts-ignore
     expect(paginationResponse.first()).toHaveLength(3)
-    // @ts-ignore
     expect(paginationResponse.last()).toHaveLength(1)
-    // @ts-ignore
     expect(paginationResponse.offset(2)).toHaveLength(1)
+    expect(paginationResponse.page).toBe(2)
+    paginationResponse.first()
+    expect(paginationResponse.page).toBe(1)
   })
 })
