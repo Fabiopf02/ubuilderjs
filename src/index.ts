@@ -1,8 +1,10 @@
 import { IWhereParams, Obj, WhereTypes } from './types'
+
 export class UBuilder {
   private _database: any[] = []
   private _limit: number = 0
   private _select: string[] = []
+  private _perPage: number = 0
   private _where: IWhereParams = {
     AND: {},
     OR: {},
@@ -17,6 +19,7 @@ export class UBuilder {
 
   static for(database: any[]) {
     new UBuilder(database)
+    return this
   }
 
   limit(max: number) {
@@ -58,6 +61,11 @@ export class UBuilder {
 
   desc() {
     this._orderType = 'desc'
+    return this
+  }
+
+  paginate(perPage: number = 10) {
+    this._perPage = perPage
     return this
   }
 
@@ -114,6 +122,61 @@ export class UBuilder {
     })
   }
 
+  private _pagination(data: any[]) {
+    const total = data.length
+    const perPage = this._perPage
+    const pages = Math.ceil(total / perPage)
+    let currentOffset = 1
+
+    const paginatedData = new Array(pages)
+
+    for (let page = 0; page < pages; page++) {
+      const from = page === 0 ? 0 : page * perPage
+      const to = (page + 1) * perPage
+      const pageData = data.slice(from, to)
+      paginatedData[page] = pageData
+    }
+
+    const next = () => {
+      if (currentOffset + 1 > pages) return null
+      currentOffset++
+      return paginatedData[currentOffset - 1]
+    }
+    const prev = () => {
+      if (currentOffset - 1 < 1) return null
+      currentOffset--
+      return paginatedData[currentOffset - 1]
+    }
+
+    const offset = (index: number) => {
+      if (index < 1 || index > pages) return null
+      currentOffset = index
+      return paginatedData[currentOffset - 1]
+    }
+
+    const first = () => {
+      currentOffset = 1
+      return paginatedData[currentOffset - 1]
+    }
+
+    const last = () => {
+      currentOffset = pages
+      return paginatedData[currentOffset - 1]
+    }
+
+    return {
+      total,
+      pages,
+      page: currentOffset,
+      data: paginatedData[currentOffset - 1],
+      offset,
+      prev,
+      next,
+      first,
+      last,
+    }
+  }
+
   build() {
     const results = []
 
@@ -126,6 +189,10 @@ export class UBuilder {
       if (this.isInLimit(results)) break
     }
 
-    return this.order(results)
+    const orderedResults = this.order(results)
+
+    if (this._perPage > 0) return this._pagination(orderedResults)
+
+    return orderedResults
   }
 }
