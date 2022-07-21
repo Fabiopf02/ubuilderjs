@@ -2,7 +2,7 @@
   "name": "ubuilderjs",
   "description": "Package for manipulating arrays as queries in js",
   "keywords": ["ubuilderjs", "ubuilder", "js", "queries", "arrays", "manipulating", "order", "filter", "limit"],
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "build/index.js",
   "author": {
     "name": "Fábio França",
