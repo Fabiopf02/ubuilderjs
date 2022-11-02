@@ -1,6 +1,11 @@
 import { UBuilder } from '../src/index'
 
-const data: { [key: string]: any }[] = [
+interface Type {
+  id: number
+  name: string
+}
+
+const data: Type[] = [
   {
     id: 1,
     name: 'Test 1',
@@ -27,22 +32,30 @@ describe('UBuilder', () => {
     expect(received).toStrictEqual(expected)
   })
   test('Deve selecionar apenas uma propriedade do objeto', () => {
-    const first = data[0]
+    const dataCopy = Object.assign([], data)
+    const first = dataCopy[0]
+    // @ts-ignore
     delete first['id']
     const expected = [first]
-    const received = new UBuilder(data).limit(1).select(['name']).build()
+    const received = new UBuilder(dataCopy).limit(1).select(['name']).build()
 
     expect(received).toStrictEqual(expected)
   })
   test('Deve filtrar os valores com where', () => {
     const first = data[1]
     const expected = [first]
-    const received = new UBuilder(data)
+    const received = new UBuilder<Type>(data)
       .limit(1)
       .where({ OR: { id: 2 } })
       .build()
 
     expect(received).toStrictEqual(expected)
+  })
+  test('Deve agrupar os valores com groupBy', () => {
+    const expected = [[data[0]], [data[1]], [data[2]]]
+    const result = new UBuilder<Type>(data).groupBy('id').limit(3).build()
+
+    expect(result).toStrictEqual(expected)
   })
   test('Deve ordenar os valores com orderBy', () => {
     const expected = data.reverse()

@@ -1,25 +1,21 @@
 import { IWhereParams, Obj, WhereTypes } from './types'
 
-export class UBuilder {
+export class UBuilder<DataType = any> {
   private _database: any[] = []
   private _limit: number = 0
-  private _select: string[] = []
+  private _select: Array<keyof DataType> = []
   private _perPage: number = 0
-  private _where: IWhereParams = {
+  private _where: IWhereParams<DataType> = {
     AND: {},
     OR: {},
   }
-  private _orderBy: string = ''
+  private _orderBy: keyof DataType = '' as keyof DataType
   private _orderType: 'asc' | 'desc' = 'asc'
+  private _groupBy: keyof DataType = null as unknown as keyof DataType
 
-  constructor(database: any[]) {
+  constructor(database: DataType[]) {
     if (!database) throw new Error('Database parameter is required!')
     this._database = database
-  }
-
-  static for(database: any[]) {
-    new UBuilder(database)
-    return this
   }
 
   limit(max: number) {
@@ -27,12 +23,12 @@ export class UBuilder {
     return this
   }
 
-  select(properties: string[]) {
+  select(properties: Array<keyof DataType>) {
     this._select = properties
     return this
   }
 
-  where(_value: IWhereParams) {
+  where(_value: IWhereParams<DataType>) {
     const types: WhereTypes[] = ['AND', 'OR']
     for (const type of types) {
       if (!_value[type]) continue
@@ -40,16 +36,15 @@ export class UBuilder {
         const whereFilter =
           (selectedValue as any) instanceof RegExp
             ? selectedValue
-            : new RegExp(selectedValue)
-        const obj: any = {}
-        obj[prop] = whereFilter
+            : new RegExp(selectedValue as any)
+        const obj = { [prop]: whereFilter }
         Object.assign(this._where[type]!, obj)
       }
     }
     return this
   }
 
-  orderBy(_value: string) {
+  orderBy(_value: keyof DataType) {
     this._orderBy = _value
     return this
   }
@@ -64,6 +59,11 @@ export class UBuilder {
     return this
   }
 
+  groupBy(key: keyof DataType) {
+    this._groupBy = key
+    return this
+  }
+
   paginate(perPage: number = 10) {
     this._perPage = perPage
     const response = this.build()
@@ -74,11 +74,12 @@ export class UBuilder {
     return this._limit && results.length === this._limit
   }
 
-  private selectProperties(item: Obj) {
+  private selectProperties(item: Obj<DataType>) {
     if (!this._select.length) return item
-    const newObject: Obj = {}
+    const newObject: { [key: string]: any } = {}
     for (const key of this._select) {
       if (item.hasOwnProperty(key)) {
+        // @ts-ignore
         newObject[key] = item[key]
       }
     }
@@ -91,7 +92,9 @@ export class UBuilder {
     const AND = Object.keys(this._where.AND!).length > 0
     if (!OR && !AND) return item
     if (AND) {
-      for (const [prop, whereFilter] of Object.entries(this._where.AND!)) {
+      for (const [prop, whereFilter] of Object.entries(
+        this._where.AND! as { [key: string]: any }
+      )) {
         if (whereFilter.test(item[prop])) {
           matched = true
           continue
@@ -102,7 +105,9 @@ export class UBuilder {
     }
     if (OR) {
       matched = false
-      for (const [prop, whereFilter] of Object.entries(this._where.OR!)) {
+      for (const [prop, whereFilter] of Object.entries(
+        this._where.OR! as { [key: string]: any }
+      )) {
         if (whereFilter.test(item[prop])) {
           matched = true
           break
@@ -113,7 +118,7 @@ export class UBuilder {
   }
 
   private order(results: any[]) {
-    if (!this._orderBy.length) return results
+    if (!(this._orderBy as string).length) return results
     return results.sort((a, b) => {
       const valueA = a[this._orderBy]
       const valueB = b[this._orderBy]
@@ -184,6 +189,22 @@ export class UBuilder {
     return props
   }
 
+  private group(data: DataType[]) {
+    const response = []
+    const groupedValues: any[] = []
+    for (const dataItem of data) {
+      const currentGroupValue = dataItem[this._groupBy]
+      const groupedByValue = data.filter(
+        (item) =>
+          !groupedValues.includes(currentGroupValue) &&
+          item[this._groupBy] === currentGroupValue
+      )
+      groupedValues.push(currentGroupValue)
+      response.push(groupedByValue)
+    }
+    return response
+  }
+
   build() {
     const results = []
 
@@ -197,6 +218,8 @@ export class UBuilder {
     }
 
     const orderedResults = this.order(results)
+
+    if (this._groupBy) return this.group(orderedResults)
 
     return orderedResults
   }
